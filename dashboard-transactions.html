@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard Transacciones</title>
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <meta name="color-scheme" content="dark" />
+</head>
+<body class="h-full bg-slate-900 text-slate-50">
+  <!-- Header -->
+  <header class="sticky top-0 z-10 backdrop-blur bg-slate-900/70 border-b border-slate-800">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-lg md:text-xl font-bold">📊 Dashboard de Transacciones</h1>
+        <p id="lastUpdated" class="text-xs text-slate-400">Cargando…</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-400">Auto-refresco en <span id="countdown" class="font-semibold text-slate-200">—</span></span>
+        <button id="btnRefresh" class="px-3 py-2 text-sm font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700">
+          Refrescar ahora
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- KPIs -->
+  <main class="max-w-6xl mx-auto px-4 py-4">
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-400">Transacciones hoy</div>
+        <div id="kpi_tx" class="mt-1 text-3xl font-extrabold">—</div>
+        <div class="mt-2 text-xs text-slate-400">Tasa aprobación: <span id="kpi_aprob" class="font-semibold text-slate-200">—</span></div>
+      </div>
+      <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-400">Gasto total hoy</div>
+        <div id="kpi_total" class="mt-1 text-3xl font-extrabold">—</div>
+        <div class="mt-2 text-xs text-slate-400">Promedio: <span id="kpi_avg" class="font-semibold text-slate-200">—</span></div>
+      </div>
+      <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-400">Máximo (hoy)</div>
+        <div id="kpi_max" class="mt-1 text-3xl font-extrabold">—</div>
+      </div>
+      <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-400">Mínimo (hoy)</div>
+        <div id="kpi_min" class="mt-1 text-3xl font-extrabold">—</div>
+      </div>
+    </section>
+
+    <!-- Serie diaria -->
+    <section class="mt-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="text-base md:text-lg font-semibold">Serie diaria (últimos 30 días)</h2>
+        <span class="text-xs text-slate-400">Zona horaria: America/Santo_Domingo</span>
+      </div>
+      <div class="mt-3">
+        <canvas id="chartDiario" class="w-full" height="120"></canvas>
+      </div>
+    </section>
+
+    <!-- Por banco -->
+    <section class="mt-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+      <h2 class="text-base md:text-lg font-semibold">Gasto por banco (mes)</h2>
+      <div class="mt-3">
+        <canvas id="chartBanco" class="w-full" height="120"></canvas>
+      </div>
+      <div class="mt-4 overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="text-slate-400">
+            <tr>
+              <th class="text-left py-2 pr-4">Banco</th>
+              <th class="text-right py-2 px-4">Tx</th>
+              <th class="text-right py-2 px-4">Gasto</th>
+              <th class="text-right py-2 px-4">Promedio</th>
+              <th class="text-right py-2 pl-4">Aprob.</th>
+            </tr>
+          </thead>
+          <tbody id="tblBanco"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Top comercios -->
+    <section class="mt-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+      <h2 class="text-base md:text-lg font-semibold">Top comercios (mes)</h2>
+      <div class="mt-2 overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="text-slate-400">
+            <tr>
+              <th class="text-left py-2 pr-4">Comercio</th>
+              <th class="text-right py-2 px-4">Tx</th>
+              <th class="text-right py-2 px-4">Gasto</th>
+              <th class="text-right py-2 pl-4">Promedio</th>
+            </tr>
+          </thead>
+          <tbody id="tblTopCom"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <p id="msg" class="mt-4 text-xs text-amber-200 hidden"></p>
+  </main>
+
+  <script>
+    // 🔧 CONFIG: coloca aquí tu Webhook de n8n (GET)
+    const WEBHOOK_URL = "https://TU_WEBHOOK_URL_DE_N8N";
+
+    // Auto-refresco (segundos)
+    const REFRESH_SECONDS = 120;
+
+    // Helpers
+    const el = (id) => document.getElementById(id);
+    const fmtRD  = (n) => n==null ? "—" : new Intl.NumberFormat("es-DO",{style:"currency",currency:"DOP"}).format(n);
+    const fmtNum = (n) => n==null ? "—" : new Intl.NumberFormat("es-DO").format(n);
+    const fmtPct = (x) => x==null ? "—" : (x*100).toFixed(1) + "%";
+    const cleanHtmlNbsp = (s) => (s || "").replace(/&nbsp;|\u00A0/gi, " ").trim();
+
+    let chartDiario, chartBanco;
+    let timerInterval = null;
+    let countdown = REFRESH_SECONDS;
+
+    function startCountdown(){
+      clearInterval(timerInterval);
+      countdown = REFRESH_SECONDS;
+      el("countdown").textContent = countdown + "s";
+      timerInterval = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+          loadData();
+          countdown = REFRESH_SECONDS;
+        }
+        el("countdown").textContent = countdown + "s";
+      }, 1000);
+    }
+
+    async function loadData(){
+      setStatus("");
+      try{
+        const res = await fetch(WEBHOOK_URL, { headers: { "Accept": "application/json" }});
+        if(!res.ok) throw new Error("HTTP " + res.status);
+        const raw = await res.json();
+
+        // Soporta el formato: [ { data: {...} } ]
+        let data;
+        if (Array.isArray(raw)) {
+          data = raw[0]?.data ?? raw[0] ?? {};
+        } else {
+          data = raw?.data ?? raw ?? {};
+        }
+
+        renderKPIs(data);
+        renderDiario(data);
+        renderBanco(data);
+        renderTopComercios(data);
+
+        el("lastUpdated").textContent = "Actualizado: " + new Date().toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" });
+      }catch(err){
+        console.error(err);
+        setStatus("⚠️ Error al cargar datos. Revisa CORS/URL del Webhook.");
+      }
+      // Reinicia el conteo tras cada carga
+      startCountdown();
+    }
+
+    function setStatus(msg){
+      const p = el("msg");
+      if(!msg){
+        p.classList.add("hidden");
+        p.textContent = "";
+      } else {
+        p.classList.remove("hidden");
+        p.textContent = msg;
+      }
+    }
+
+    // Render KPIs
+    function renderKPIs(d){
+      const h = d?.hoy || {};
+      el("kpi_tx").textContent   = fmtNum(h.tx_count);
+      el("kpi_aprob").textContent= fmtPct(h.tasa_aprobacion);
+      el("kpi_total").textContent= fmtRD(h.gasto_total);
+      el("kpi_avg").textContent  = fmtRD(h.promedio);
+      el("kpi_max").textContent  = fmtRD(h.maximo);
+      el("kpi_min").textContent  = fmtRD(h.minimo);
+    }
+
+    // Serie diaria
+    function renderDiario(d){
+      const arr = d?.diario_30d || [];
+      const labels = arr.map(r => r.fecha);
+      const dataMonto = arr.map(r => Number(r.gasto_total || 0));
+      const dataTx    = arr.map(r => Number(r.tx_count || 0));
+
+      if(chartDiario) chartDiario.destroy();
+      chartDiario = new Chart(el("chartDiario"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            { label: "Gasto total", data: dataMonto, borderWidth: 2, tension: .3 },
+            { label: "Transacciones", data: dataTx, borderWidth: 2, tension: .3, yAxisID: "y1" }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y:  { beginAtZero: true },
+            y1: { beginAtZero: true, position: "right", grid: { drawOnChartArea: false } }
+          },
+          plugins: { legend: { labels: { color: "#e5e7eb" } } }
+        }
+      });
+    }
+
+    // Por banco
+    function renderBanco(d){
+      const arr = (d?.mes_por_banco || []).map(x => ({
+        banco: x.banco ?? "—",
+        tx_count: Number(x.tx_count || 0),
+        gasto_total: Number(x.gasto_total || 0),
+        promedio: Number(x.promedio || 0),
+        tasa_aprobacion: (typeof x.tasa_aprobacion === "number") ? x.tasa_aprobacion : Number(x.tasa_aprobacion || 0)
+      }));
+
+      if(chartBanco) chartBanco.destroy();
+      chartBanco = new Chart(el("chartBanco"), {
+        type: "bar",
+        data: { labels: arr.map(x => x.banco), datasets: [{ label: "Gasto total (mes)", data: arr.map(x => x.gasto_total) }]},
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { labels: { color: "#e5e7eb" } } } }
+      });
+
+      el("tblBanco").innerHTML = arr.map(x => `
+        <tr class="border-b border-slate-800">
+          <td class="py-2 pr-4">${x.banco}</td>
+          <td class="py-2 px-4 text-right">${fmtNum(x.tx_count)}</td>
+          <td class="py-2 px-4 text-right">${fmtRD(x.gasto_total)}</td>
+          <td class="py-2 px-4 text-right">${fmtRD(x.promedio)}</td>
+          <td class="py-2 pl-4 text-right">${fmtPct(x.tasa_aprobacion)}</td>
+        </tr>
+      `).join("");
+    }
+
+    // Top comercios
+    function renderTopComercios(d){
+      const arr = (d?.top_comercios || []).map(x => ({
+        comercio: cleanHtmlNbsp(x.comercio ?? "—"),
+        tx_count: Number(x.tx_count || 0),
+        gasto_total: Number(x.gasto_total || 0),
+        promedio: Number(x.promedio || 0)
+      }));
+
+      el("tblTopCom").innerHTML = arr.map(x => `
+        <tr class="border-b border-slate-800">
+          <td class="py-2 pr-4">${x.comercio}</td>
+          <td class="py-2 px-4 text-right">${fmtNum(x.tx_count)}</td>
+          <td class="py-2 px-4 text-right">${fmtRD(x.gasto_total)}</td>
+          <td class="py-2 pl-4 text-right">${fmtRD(x.promedio)}</td>
+        </tr>
+      `).join("");
+    }
+
+    // Eventos
+    el("btnRefresh").addEventListener("click", () => loadData());
+
+    // Arranque
+    loadData();
+  </script>
+</body>
+</html>
