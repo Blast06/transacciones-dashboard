@@ -103,6 +103,29 @@
       </div>
     </section>
 
+        <!-- NUEVO: Transacciones del mes (lista diaria) -->
+    <section class="mt-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base md:text-lg font-semibold">Transacciones del mes</h2>
+        <span class="text-xs text-slate-400">Mostrando fecha, banco, comercio, gasto</span>
+      </div>
+      <div class="mt-2 overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="text-slate-400">
+            <tr>
+              <th class="text-left py-2 pr-4">Fecha</th>
+              <th class="text-left py-2 px-4">Banco</th>
+              <th class="text-left py-2 px-4">Comercio</th>
+              <th class="text-right py-2 pl-4">Gasto</th>
+            </tr>
+          </thead>
+          <tbody id="tblTxMes"></tbody>
+        </table>
+      </div>
+      <p id="txMesMsg" class="mt-3 text-xs text-amber-200 hidden"></p>
+    </section>
+
+
     <p id="msg" class="mt-4 text-xs text-amber-200 hidden"></p>
   </main>
 
@@ -157,6 +180,8 @@
         renderDiario(data);
         renderBanco(data);
         renderTopComercios(data);
+        renderTxMes(data);
+
 
         el("lastUpdated").textContent = "Actualizado: " + new Date().toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" });
       }catch(err){
@@ -261,6 +286,39 @@
           <td class="py-2 px-4 text-right">${fmtNum(x.tx_count)}</td>
           <td class="py-2 px-4 text-right">${fmtRD(x.gasto_total)}</td>
           <td class="py-2 pl-4 text-right">${fmtRD(x.promedio)}</td>
+        </tr>
+      `).join("");
+    }
+
+     function renderTxMes(d){
+      const rows = (d?.transacciones_mes || []).map(x => ({
+        fecha: x.fecha, // idealmente ISO YYYY-MM-DD
+        banco: x.banco ?? "—",
+        comercio: cleanHtmlNbsp(x.comercio ?? "—"),
+        gasto: Number(x.gasto ?? x.amount ?? 0)
+      }));
+
+      // Si no hay datos, muestra mensaje
+      const msg = document.getElementById("txMesMsg");
+      if (!rows.length) {
+        document.getElementById("tblTxMes").innerHTML = "";
+        msg.classList.remove("hidden");
+        msg.textContent = "No hay transacciones para el mes actual o el backend aún no envía 'transacciones_mes'.";
+        return;
+      } else {
+        msg.classList.add("hidden");
+        msg.textContent = "";
+      }
+
+      // Orden: más reciente primero (si viene YYYY-MM-DD basta con sort descendente por string)
+      rows.sort((a,b) => (a.fecha < b.fecha ? 1 : (a.fecha > b.fecha ? -1 : 0)));
+
+      document.getElementById("tblTxMes").innerHTML = rows.map(r => `
+        <tr class="border-b border-slate-800">
+          <td class="py-2 pr-4">${r.fecha}</td>
+          <td class="py-2 px-4">${r.banco}</td>
+          <td class="py-2 px-4">${r.comercio}</td>
+          <td class="py-2 pl-4 text-right">${fmtRD(r.gasto)}</td>
         </tr>
       `).join("");
     }
