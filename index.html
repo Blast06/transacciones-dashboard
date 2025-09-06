@@ -46,10 +46,11 @@
         <div class="text-xs uppercase tracking-wide text-slate-400">Máximo (hoy)</div>
         <div id="kpi_max" class="mt-1 text-3xl font-extrabold">—</div>
       </div>
-      <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
-        <div class="text-xs uppercase tracking-wide text-slate-400">Mínimo (hoy)</div>
-        <div id="kpi_min" class="mt-1 text-3xl font-extrabold">—</div>
-      </div>
+     <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
+      <div class="text-xs uppercase tracking-wide text-slate-400">Gasto total del mes</div>
+      <div id="kpi_total_mes" class="mt-1 text-3xl font-extrabold">—</div>
+    </div>
+
     </section>
 
     <!-- Serie diaria -->
@@ -181,6 +182,11 @@
         renderBanco(data);
         renderTopComercios(data);
         renderTxMes(data);
+
+        // Total del mes = suma de gasto_total por banco
+        const totalMes = (d?.mes_por_banco || []).reduce((acc, x) => acc + Number(x.gasto_total || 0), 0);
+        document.getElementById('kpi_total_mes').textContent = fmtRD(totalMes);
+
 
 
         el("lastUpdated").textContent = "Actualizado: " + new Date().toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" });
