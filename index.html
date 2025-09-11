@@ -192,7 +192,8 @@
         el("lastUpdated").textContent = "Actualizado: " + new Date().toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" });
       }catch(err){
         console.error(err);
-        setStatus("⚠️ Error al cargar datos. Revisa CORS/URL del Webhook.");
+        //setStatus("⚠️ Error al cargar datos. Revisa CORS/URL del Webhook.");
+         setStatus("⚠️ " + (err.message || "Error al cargar datos."));
       }
       // Reinicia el conteo tras cada carga
       startCountdown();
