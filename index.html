@@ -46,11 +46,10 @@
         <div class="text-xs uppercase tracking-wide text-slate-400">Máximo (hoy)</div>
         <div id="kpi_max" class="mt-1 text-3xl font-extrabold">—</div>
       </div>
-     <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
-      <div class="text-xs uppercase tracking-wide text-slate-400">Gasto total del mes</div>
-      <div id="kpi_total_mes" class="mt-1 text-3xl font-extrabold">—</div>
-    </div>
-
+      <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-400">Gasto total del mes</div>
+        <div id="kpi_total_mes" class="mt-1 text-3xl font-extrabold">—</div>
+      </div>
     </section>
 
     <!-- Serie diaria -->
@@ -104,7 +103,7 @@
       </div>
     </section>
 
-        <!-- NUEVO: Transacciones del mes (lista diaria) -->
+    <!-- Transacciones del mes (lista diaria) -->
     <section class="mt-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
       <div class="flex items-center justify-between">
         <h2 class="text-base md:text-lg font-semibold">Transacciones del mes</h2>
@@ -126,14 +125,13 @@
       <p id="txMesMsg" class="mt-3 text-xs text-amber-200 hidden"></p>
     </section>
 
-
     <p id="msg" class="mt-4 text-xs text-amber-200 hidden"></p>
   </main>
 
   <script>
-    // 🔧 CONFIG: coloca aquí tu Webhook de n8n (GET)
-    const WEBHOOK_URL = "https://98.87.24.190/webhook/get-kpis";
-   
+    // 👉 MISMO ORIGEN (evita CORS)
+    const WEBHOOK_URL = "/webhook/get-kpis";
+
     // Auto-refresco (segundos)
     const REFRESH_SECONDS = 120;
 
@@ -143,6 +141,7 @@
     const fmtNum = (n) => n==null ? "—" : new Intl.NumberFormat("es-DO").format(n);
     const fmtPct = (x) => x==null ? "—" : (x*100).toFixed(1) + "%";
     const cleanHtmlNbsp = (s) => (s || "").replace(/&nbsp;|\u00A0/gi, " ").trim();
+    function setText(id, text){ const n = el(id); if(n) n.textContent = text; } // helper seguro
 
     let chartDiario, chartBanco;
     let timerInterval = null;
@@ -151,14 +150,14 @@
     function startCountdown(){
       clearInterval(timerInterval);
       countdown = REFRESH_SECONDS;
-      el("countdown").textContent = countdown + "s";
+      setText("countdown", countdown + "s");
       timerInterval = setInterval(() => {
         countdown--;
         if (countdown <= 0) {
           loadData();
           countdown = REFRESH_SECONDS;
         }
-        el("countdown").textContent = countdown + "s";
+        setText("countdown", countdown + "s");
       }, 1000);
     }
 
@@ -166,8 +165,11 @@
       setStatus("");
       try{
         const res = await fetch(WEBHOOK_URL);
-        if(!res.ok) throw new Error("HTTP " + res.status);
-        const raw = await res.json();
+        const txt = await res.text();
+        if(!res.ok) throw new Error(`HTTP ${res.status} - ${txt.slice(0,200)}`);
+
+        let raw;
+        try { raw = JSON.parse(txt); } catch { throw new Error("Respuesta del API no es JSON"); }
 
         // Soporta el formato: [ { data: {...} } ]
         let data;
@@ -183,44 +185,35 @@
         renderTopComercios(data);
         renderTxMes(data);
 
-        // Total del mes = suma de gasto_total por banco
-        const totalMes = (d?.mes_por_banco || []).reduce((acc, x) => acc + Number(x.gasto_total || 0), 0);
-        document.getElementById('kpi_total_mes').textContent = fmtRD(totalMes);
-
-
-
         setText("lastUpdated",
-        "Actualizado: " + new Date().toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" })
-      );
+          "Actualizado: " + new Date().toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" })
+        );
 
       }catch(err){
         console.error(err);
-        //setStatus("⚠️ Error al cargar datos. Revisa CORS/URL del Webhook.");
-         setStatus("⚠️ " + (err.message || "Error al cargar datos."));
+        setStatus("⚠️ " + (err.message || "Error al cargar datos."));
       }
       // Reinicia el conteo tras cada carga
       startCountdown();
     }
 
     function setStatus(msg){
-      const p = document.getElementById("msg");
+      const p = el("msg");
       if (!p) return;
       if(!msg){ p.classList.add("hidden"); p.textContent = ""; }
       else { p.classList.remove("hidden"); p.textContent = msg; }
-}
-
+    }
 
     // Render KPIs
     function renderKPIs(d){
-       const h = d?.hoy || {};
+      const h = d?.hoy || {};
       setText("kpi_tx",    fmtNum(h.tx_count));
       setText("kpi_aprob", fmtPct(h.tasa_aprobacion));
       setText("kpi_total", fmtRD(h.gasto_total));
       setText("kpi_avg",   fmtRD(h.promedio));
       setText("kpi_max",   fmtRD(h.maximo));
       setText("kpi_min",   fmtRD(h.minimo));
-    
-      // si agregaste "Gasto total del mes"
+      // Gasto total del mes (suma por banco)
       const totalMes = (d?.mes_por_banco || []).reduce((acc,x)=>acc + Number(x.gasto_total||0), 0);
       setText("kpi_total_mes", fmtRD(totalMes));
     }
@@ -233,7 +226,9 @@
       const dataTx    = arr.map(r => Number(r.tx_count || 0));
 
       if(chartDiario) chartDiario.destroy();
-      chartDiario = new Chart(el("chartDiario"), {
+      const ctx = el("chartDiario");
+      if (!ctx) return;
+      chartDiario = new Chart(ctx, {
         type: "line",
         data: {
           labels,
@@ -265,7 +260,9 @@
       }));
 
       if(chartBanco) chartBanco.destroy();
-      chartBanco = new Chart(el("chartBanco"), {
+      const ctx = el("chartBanco");
+      if (!ctx) return;
+      chartBanco = new Chart(ctx, {
         type: "bar",
         data: { labels: arr.map(x => x.banco), datasets: [{ label: "Gasto total (mes)", data: arr.map(x => x.gasto_total) }]},
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { labels: { color: "#e5e7eb" } } } }
@@ -301,30 +298,27 @@
       `).join("");
     }
 
-     function renderTxMes(d){
+    // Transacciones del mes
+    function renderTxMes(d){
       const rows = (d?.transacciones_mes || []).map(x => ({
-        fecha: x.fecha, // idealmente ISO YYYY-MM-DD
+        fecha: x.fecha,
         banco: x.banco ?? "—",
         comercio: cleanHtmlNbsp(x.comercio ?? "—"),
         gasto: Number(x.gasto ?? x.amount ?? 0)
       }));
 
-      // Si no hay datos, muestra mensaje
-      const msg = document.getElementById("txMesMsg");
+      const msg = el("txMesMsg");
       if (!rows.length) {
-        document.getElementById("tblTxMes").innerHTML = "";
-        msg.classList.remove("hidden");
-        msg.textContent = "No hay transacciones para el mes actual o el backend aún no envía 'transacciones_mes'.";
+        el("tblTxMes").innerHTML = "";
+        if (msg){ msg.classList.remove("hidden"); msg.textContent = "No hay transacciones para el mes actual o el backend aún no envía 'transacciones_mes'."; }
         return;
       } else {
-        msg.classList.add("hidden");
-        msg.textContent = "";
+        if (msg){ msg.classList.add("hidden"); msg.textContent = ""; }
       }
 
-      // Orden: más reciente primero (si viene YYYY-MM-DD basta con sort descendente por string)
       rows.sort((a,b) => (a.fecha < b.fecha ? 1 : (a.fecha > b.fecha ? -1 : 0)));
 
-      document.getElementById("tblTxMes").innerHTML = rows.map(r => `
+      el("tblTxMes").innerHTML = rows.map(r => `
         <tr class="border-b border-slate-800">
           <td class="py-2 pr-4">${r.fecha}</td>
           <td class="py-2 px-4">${r.banco}</td>
@@ -334,20 +328,12 @@
       `).join("");
     }
 
-    // Eventos
-    el("btnRefresh").addEventListener("click", () => loadData());
-
-    // Arranque (espera a que el DOM exista)
-document.addEventListener('DOMContentLoaded', () => {
-  // si tenías listeners como btnRefresh también van aquí
-  const btn = document.getElementById('btnRefresh');
-  if (btn) btn.addEventListener('click', () => loadData());
-
-  // si tienes selector de intervalo:
-  const sel = document.getElementById('refreshSel');
-  if (sel) sel.addEventListener('change', () => startCountdown());
-
-  loadData();
+    // Arranque (cuando el DOM esté listo)
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = el('btnRefresh');
+      if (btn) btn.addEventListener('click', () => loadData());
+      loadData();
+    });
   </script>
 </body>
 </html>
