@@ -189,7 +189,10 @@
 
 
 
-        el("lastUpdated").textContent = "Actualizado: " + new Date().toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" });
+        setText("lastUpdated",
+        "Actualizado: " + new Date().toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" })
+      );
+
       }catch(err){
         console.error(err);
         //setStatus("⚠️ Error al cargar datos. Revisa CORS/URL del Webhook.");
@@ -200,25 +203,26 @@
     }
 
     function setStatus(msg){
-      const p = el("msg");
-      if(!msg){
-        p.classList.add("hidden");
-        p.textContent = "";
-      } else {
-        p.classList.remove("hidden");
-        p.textContent = msg;
-      }
-    }
+      const p = document.getElementById("msg");
+      if (!p) return;
+      if(!msg){ p.classList.add("hidden"); p.textContent = ""; }
+      else { p.classList.remove("hidden"); p.textContent = msg; }
+}
+
 
     // Render KPIs
     function renderKPIs(d){
-      const h = d?.hoy || {};
-      el("kpi_tx").textContent   = fmtNum(h.tx_count);
-      el("kpi_aprob").textContent= fmtPct(h.tasa_aprobacion);
-      el("kpi_total").textContent= fmtRD(h.gasto_total);
-      el("kpi_avg").textContent  = fmtRD(h.promedio);
-      el("kpi_max").textContent  = fmtRD(h.maximo);
-      el("kpi_min").textContent  = fmtRD(h.minimo);
+       const h = d?.hoy || {};
+      setText("kpi_tx",    fmtNum(h.tx_count));
+      setText("kpi_aprob", fmtPct(h.tasa_aprobacion));
+      setText("kpi_total", fmtRD(h.gasto_total));
+      setText("kpi_avg",   fmtRD(h.promedio));
+      setText("kpi_max",   fmtRD(h.maximo));
+      setText("kpi_min",   fmtRD(h.minimo));
+    
+      // si agregaste "Gasto total del mes"
+      const totalMes = (d?.mes_por_banco || []).reduce((acc,x)=>acc + Number(x.gasto_total||0), 0);
+      setText("kpi_total_mes", fmtRD(totalMes));
     }
 
     // Serie diaria
