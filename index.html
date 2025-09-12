@@ -333,8 +333,17 @@
     // Eventos
     el("btnRefresh").addEventListener("click", () => loadData());
 
-    // Arranque
-    loadData();
+    // Arranque (espera a que el DOM exista)
+document.addEventListener('DOMContentLoaded', () => {
+  // si tenías listeners como btnRefresh también van aquí
+  const btn = document.getElementById('btnRefresh');
+  if (btn) btn.addEventListener('click', () => loadData());
+
+  // si tienes selector de intervalo:
+  const sel = document.getElementById('refreshSel');
+  if (sel) sel.addEventListener('change', () => startCountdown());
+
+  loadData();
   </script>
 </body>
 </html>
