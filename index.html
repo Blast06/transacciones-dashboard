@@ -31,24 +31,24 @@
 
   <!-- KPIs -->
   <main class="max-w-6xl mx-auto px-4 py-4">
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-      <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
+      <div class="min-w-0 rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
         <div class="text-xs uppercase tracking-wide text-slate-400">Transacciones hoy</div>
-        <div id="kpi_tx" class="mt-1 text-3xl font-extrabold">—</div>
+        <div id="kpi_tx" class="mt-1 text-2xl md:text-3xl font-extrabold leading-tight break-words">—</div>
         <div class="mt-2 text-xs text-slate-400">Tasa aprobación: <span id="kpi_aprob" class="font-semibold text-slate-200">—</span></div>
       </div>
-      <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
+      <div class="min-w-0 rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
         <div class="text-xs uppercase tracking-wide text-slate-400">Gasto total hoy</div>
-        <div id="kpi_total" class="mt-1 text-3xl font-extrabold">—</div>
+        <div id="kpi_total" class="mt-1 text-2xl md:text-3xl font-extrabold leading-tight break-words">—</div>
         <div class="mt-2 text-xs text-slate-400">Promedio: <span id="kpi_avg" class="font-semibold text-slate-200">—</span></div>
       </div>
-      <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
+      <div class="min-w-0 rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
         <div class="text-xs uppercase tracking-wide text-slate-400">Máximo (hoy)</div>
-        <div id="kpi_max" class="mt-1 text-3xl font-extrabold">—</div>
+        <div id="kpi_max" class="mt-1 text-2xl md:text-3xl font-extrabold leading-tight break-words">—</div>
       </div>
-      <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
+      <div class="min-w-0 rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
         <div class="text-xs uppercase tracking-wide text-slate-400">Gasto total del mes</div>
-        <div id="kpi_total_mes" class="mt-1 text-3xl font-extrabold">—</div>
+        <div id="kpi_total_mes" class="mt-1 text-2xl md:text-3xl font-extrabold leading-tight break-words">—</div>
         <div class="mt-2 text-xs text-slate-400">Anterior: <span id="kpi_mes_anterior" class="font-semibold text-slate-200">—</span></div>
       </div>
     </section>
@@ -218,8 +218,8 @@
       const totalMes = (d?.mes_por_banco || []).reduce((acc,x)=>acc + Number(x.gasto_total||0), 0);
       setText("kpi_total_mes", fmtRD(totalMes));
 
-      // Gasto total del mes anterior (vista v_kpis_mes_anterior)
-      const kpisMesAnterior = d?.kpis_mes_anterior || d?.mes_anterior_kpis || d?.v_kpis_mes_anterior || {};
+      // Gasto total del mes anterior (vista v_total_mes_anterior)
+      const kpisMesAnterior = d?.kpis_mes_anterior || d?.mes_anterior_kpis || d?.v_total_mes_anterior || d?.v_kpis_mes_anterior || {};
       const totalMesAnterior = Number(
         kpisMesAnterior.gasto_total_mes_anterior
         ?? kpisMesAnterior.gasto_total
