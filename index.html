@@ -219,7 +219,7 @@
       setText("kpi_total_mes", fmtRD(totalMes));
 
       // Gasto total del mes anterior (vista v_total_mes_anterior)
-      const kpisMesAnterior = d?.kpis_mes_anterior || d?.mes_anterior_kpis || d?.v_total_mes_anterior || d?.v_kpis_mes_anterior || {};
+      const kpisMesAnterior = d?.mes_anterior || d?.mes_anterior_kpis || d?.v_total_mes_anterior || d?.v_kpis_mes_anterior || {};
       const totalMesAnterior = Number(
         kpisMesAnterior.gasto_total_mes_anterior
         ?? kpisMesAnterior.gasto_total
