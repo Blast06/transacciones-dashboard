@@ -31,7 +31,7 @@
 
   <!-- KPIs -->
   <main class="max-w-6xl mx-auto px-4 py-4">
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
       <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
         <div class="text-xs uppercase tracking-wide text-slate-400">Transacciones hoy</div>
         <div id="kpi_tx" class="mt-1 text-3xl font-extrabold">—</div>
@@ -49,6 +49,10 @@
       <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
         <div class="text-xs uppercase tracking-wide text-slate-400">Gasto total del mes</div>
         <div id="kpi_total_mes" class="mt-1 text-3xl font-extrabold">—</div>
+      </div>
+      <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-800/60 to-slate-800 p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-400">Gasto total mes anterior</div>
+        <div id="kpi_total_mes_anterior" class="mt-1 text-3xl font-extrabold">—</div>
       </div>
     </section>
 
@@ -216,6 +220,16 @@
       // Gasto total del mes (suma por banco)
       const totalMes = (d?.mes_por_banco || []).reduce((acc,x)=>acc + Number(x.gasto_total||0), 0);
       setText("kpi_total_mes", fmtRD(totalMes));
+
+      // Gasto total del mes anterior (vista v_kpis_mes_anterior)
+      const kpisMesAnterior = d?.kpis_mes_anterior || d?.mes_anterior_kpis || d?.v_kpis_mes_anterior || {};
+      const totalMesAnterior = Number(
+        kpisMesAnterior.gasto_total_mes_anterior
+        ?? kpisMesAnterior.gasto_total
+        ?? kpisMesAnterior.total_gasto
+        ?? 0
+      );
+      setText("kpi_total_mes_anterior", fmtRD(totalMesAnterior));
     }
 
     // Serie diaria
